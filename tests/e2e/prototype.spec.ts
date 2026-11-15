@@ -160,6 +160,38 @@ test("published job → saved offer/draft → submitted application → employer
   expect(errors).toEqual([]);
 });
 
+test("saved offers stay with their candidate across reloads and can be removed", async ({
+  page,
+}) => {
+  await choose(page, "Anna Kowalska");
+  await page.goto("/#/oferty/ai-product-manager");
+  const offerSave = page.getByRole("button", { name: "Zapisz ofertę", exact: true });
+  await expect(offerSave).toHaveAttribute("aria-pressed", "false");
+  await offerSave.click();
+  await expect(offerSave).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(offerSave).toHaveAttribute("aria-pressed", "true");
+
+  await choose(page, "Marek Nowak");
+  await page.goto("/#/app/zapisane");
+  await expect(page.getByText("Nie masz jeszcze zapisanych ofert.")).toBeVisible();
+
+  await choose(page, "Anna Kowalska");
+  await page.goto("/#/app/zapisane");
+  const savedCard = page.locator(".pp-job-card").filter({ hasText: "AI Product Manager" });
+  await expect(savedCard).toHaveCount(1);
+  const cardSave = savedCard.getByRole("button", {
+    name: "Zapisz ofertę: AI Product Manager",
+    exact: true,
+  });
+  await expect(cardSave).toHaveAttribute("aria-pressed", "true");
+  await cardSave.click();
+  await expect(savedCard).toHaveCount(0);
+  await expect(page.getByText("Nie masz jeszcze zapisanych ofert.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Nie masz jeszcze zapisanych ofert.")).toBeVisible();
+});
+
 test("another company cannot see or change a candidate application", async ({ page }) => {
   await choose(page, "Tomasz Zieliński");
   await page.goto("/#/app/kandydaci");
