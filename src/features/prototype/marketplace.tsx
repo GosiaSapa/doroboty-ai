@@ -1,6 +1,7 @@
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowUpRight, Users, MapPin, BriefcaseBusiness, Bookmark } from "lucide-react";
+import posthog from "posthog-js";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Search, ArrowRight, Monitor, X } from "lucide-react";
 import { BackLink } from "@/components/back-link";
@@ -147,6 +148,10 @@ export function JobsPage() {
       else next.delete(key);
     }
     setParams(next);
+    posthog.capture("job_search_submitted", {
+      has_query: next.has("query"),
+      has_location: next.has("location"),
+    });
   }
   const locations = [...new Set(all.flatMap((x) => x.locations))];
   return (
@@ -430,7 +435,16 @@ export function JobPage() {
                     variant="outline"
                     aria-label="Zapisz ofertę"
                     aria-pressed={saved}
-                    onClick={() => run({ type: "toggle_saved", jobId: job.id })}
+                    onClick={() => {
+                      if (run({ type: "toggle_saved", jobId: job.id })) {
+                        const properties = {
+                          job_category: job.category,
+                          remote_status: job.remoteStatus,
+                        };
+                        if (saved) posthog.capture("job_unsaved", properties);
+                        else posthog.capture("job_saved", properties);
+                      }
+                    }}
                   >
                     <Bookmark className={cn(saved && "fill-current")} />
                     Zapisz ofertę

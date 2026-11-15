@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { initialState, transition, type Action, type State } from "./model";
+import posthog from "posthog-js";
+import { currentPerson, initialState, transition, type Action, type State } from "./model";
 import { parseState, readState, saveState, type StoragePort } from "./storage";
 function browserStorage(): StoragePort | null {
   try {
@@ -15,6 +16,29 @@ function useStore() {
   const [error, setError] = useState("");
   const [blocked, setBlocked] = useState(loaded.blocked);
   const latest = useRef(state);
+  const identifiedPersonId = useRef<string | null>(null);
+  const person = currentPerson(state);
+
+  useEffect(() => {
+    if (!person) {
+      if (identifiedPersonId.current !== null) {
+        posthog.reset();
+        identifiedPersonId.current = null;
+      }
+      return;
+    }
+
+    if (identifiedPersonId.current === person.id) return;
+
+    if (identifiedPersonId.current !== null) posthog.reset();
+
+    posthog.identify(person.id, {
+      name: person.name,
+      role: person.role,
+    });
+    identifiedPersonId.current = person.id;
+  }, [person]);
+
   function commit(next: State, replace = false) {
     latest.current = next;
     setState(next);

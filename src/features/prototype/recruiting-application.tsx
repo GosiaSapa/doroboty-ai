@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ApplicationRecord } from "./application-record";
@@ -40,6 +41,11 @@ export function RecruitingApplication({ application }: { application: Applicatio
                     variant={stage === "rejected" ? "outline" : "default"}
                     onClick={() => {
                       if (run({ type: "stage", applicationId: application.id, stage, note })) {
+                        posthog.capture("application_stage_changed", {
+                          previous_stage: application.stage,
+                          new_stage: stage,
+                          has_note: Boolean(note.trim()),
+                        });
                         setNote("");
                         setAnnouncement(`Zapisano etap: ${stageLabels[stage]}.`);
                         pendingFocus.current = true;

@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import posthog from "posthog-js";
+import { posthogLog } from "@/lib/posthog-logger";
 import { Link, useNavigate, useParams } from "react-router";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +135,21 @@ export function EmployerJobEditor() {
       );
       return;
     }
-    if (run({ type: "publish", job: parsed.data })) navigate("/app/oferty");
+    if (run({ type: "publish", job: parsed.data })) {
+      posthog.capture("job_published", {
+        is_new_job: !existing,
+        job_category: parsed.data.category,
+        remote_status: parsed.data.remoteStatus,
+        seniority: parsed.data.seniority,
+      });
+      posthogLog.info("job publication completed", {
+        is_new_job: !existing,
+        job_category: parsed.data.category,
+        remote_status: parsed.data.remoteStatus,
+        seniority: parsed.data.seniority,
+      });
+      navigate("/app/oferty");
+    }
   }
   return (
     <>
@@ -170,6 +186,7 @@ export function EmployerJobEditor() {
               setGenerated(
                 `${title}\n\nO roli\n${source.trim().slice(0, 10000)}\n\nJak pracujemy\nŁączymy potrzeby użytkowników, odpowiedzialne wykorzystanie AI i mierzalne efekty.\n\nProces rekrutacji\nPrześlij aplikację i opowiedz o projekcie, w którym Twoje decyzje wpłynęły na wynik.`,
               );
+              posthog.capture("job_description_generated", { is_new_job: !existing });
               setApproved(false);
             }}
           >
@@ -286,8 +303,10 @@ export function CompanyEditor() {
         name: String(data.get("name")),
         description: String(data.get("description")),
       })
-    )
+    ) {
+      posthog.capture("company_profile_saved");
       setMessage("Dane firmy zostały zapisane.");
+    }
   }
   return (
     <>

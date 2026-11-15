@@ -1,4 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import posthog from "posthog-js";
+import { posthogLog } from "@/lib/posthog-logger";
 import { Button } from "@/components/ui/button";
 import { ApplicationRecord } from "./application-record";
 import type { Application } from "./model";
@@ -45,6 +47,12 @@ export function CandidateApplication({ application }: { application: Application
                   variant="destructive"
                   onClick={() => {
                     if (run({ type: "withdraw", applicationId: application.id })) {
+                      posthog.capture("application_withdrawn", {
+                        previous_stage: application.stage,
+                      });
+                      posthogLog.info("application withdrawal completed", {
+                        previous_stage: application.stage,
+                      });
                       focusAfter.current = "status";
                       setConfirming(false);
                       setAnnouncement("Aplikacja została wycofana.");
