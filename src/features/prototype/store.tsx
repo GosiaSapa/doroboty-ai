@@ -19,8 +19,8 @@ function useStore() {
   const identifiedPersonId = useRef<string | null>(null);
   const person = currentPerson(state);
 
-  useEffect(() => {
-    if (!person) {
+  function syncIdentity(nextPerson: State["people"][number] | undefined) {
+    if (!nextPerson) {
       if (identifiedPersonId.current !== null) {
         posthog.reset();
         identifiedPersonId.current = null;
@@ -28,15 +28,19 @@ function useStore() {
       return;
     }
 
-    if (identifiedPersonId.current === person.id) return;
+    if (identifiedPersonId.current === nextPerson.id) return;
 
     if (identifiedPersonId.current !== null) posthog.reset();
 
-    posthog.identify(person.id, {
-      name: person.name,
-      role: person.role,
+    posthog.identify(nextPerson.id, {
+      name: nextPerson.name,
+      role: nextPerson.role,
     });
-    identifiedPersonId.current = person.id;
+    identifiedPersonId.current = nextPerson.id;
+  }
+
+  useEffect(() => {
+    syncIdentity(person);
   }, [person]);
 
   function commit(next: State, replace = false) {
@@ -54,7 +58,9 @@ function useStore() {
   }
   function run(action: Action) {
     try {
-      commit(transition(latest.current, action));
+      const next = transition(latest.current, action);
+      if (action.type === "select_person") syncIdentity(currentPerson(next));
+      commit(next);
       return true;
     } catch (e) {
       setError(
