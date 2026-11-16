@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { PostHogErrorBoundary, PostHogProvider } from "@posthog/react";
 import posthog from "posthog-js";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { App } from "./features/prototype/app";
 import { posthogLog } from "./lib/posthog-logger";
 import "./app/globals.css";
@@ -33,6 +34,7 @@ createRoot(document.getElementById("root")!).render(
     <PostHogProvider client={posthog}>
       <PostHogErrorBoundary>
         <App />
+        <SpeedInsights />
       </PostHogErrorBoundary>
     </PostHogProvider>
   </StrictMode>,
